@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ExpenseCategory {
+  SERVICE
+  TYRE
+  BRAKE
+  BATTERY
+  ACCESSORIES
+  REPAIR
+  PETROL
+  TOL
+  PARKING
+  ROADTAX
+  INSURANCE
+  WASH_DETAILING
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  EWALLET
+}
+
+enum ReminderType {
+  SERVICE
+  BATTERY
+  ROADTAX
+  INSURANCE
+}
+
+enum ReminderMethod {
+  DATE
+  ODOMETER
+  BOTH
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  cars      Car[]
+  expenses  Expense[]
+  shops     Shop[]
+  reminders ReminderRule[]
+  sessions  Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Car {
+  id          String   @id @default(cuid())
+  nickname    String
+  plateNumber String?
+  make        String?
+  model       String?
+  year        Int?
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expenses    Expense[]
+  reminders   ReminderRule[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Shop {
+  id           String   @id @default(cuid())
+  name         String
+  categoryTags String?
+  address      String?
+  googleMapsUrl String?
+  lat          Float?
+  lng          Float?
+  notes        String?
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  expenses     Expense[]
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Expense {
+  id                    String          @id @default(cuid())
+  date                  DateTime
+  category              ExpenseCategory
+  customCategory        String?
+  title                 String
+  description           String?
+  amount                Decimal         @db.Decimal(10, 2)
+  odometer              Int?
+  vendor                String?
+  paymentMethod         PaymentMethod?
+  notes                 String?
+  receiptPath           String?
+  receiptOriginalName   String?
+  receiptUploadedAt     DateTime?
+  shopId                String?
+  carId                 String
+  userId                String
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  car                   Car             @relation(fields: [carId], references: [id], onDelete: Cascade)
+  shop                  Shop?           @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([userId])
+}
+
+model ReminderRule {
+  id               String         @id @default(cuid())
+  type             ReminderType
+  title            String
+  method           ReminderMethod
+  intervalDays     Int?
+  intervalKm       Int?
+  lastDoneDate     DateTime?
+  lastDoneOdometer Int?
+  nextDueDate      DateTime?
+  nextDueOdometer  Int?
+  notifyBeforeDays Int            @default(7)
+  notifyBeforeKm   Int            @default(300)
+  provider         String?
+  policyNumber     String?
+  estimatedCost    Decimal?       @db.Decimal(10, 2)
+  renewalLink      String?
+  isActive         Boolean        @default(true)
+  carId            String
+  userId           String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  car              Car            @relation(fields: [carId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([userId])
+}
